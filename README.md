@@ -1,1 +1,2 @@
 # Hand-Gesture-Recognition
+This project focuses on enhancing Human-Computer Interaction through gesture recognition technology, a vision-based low-cost input device utilizing computer vision and gesture recognition techniques to control VLC media player through dynamic hand gestures. Achieved efficient gesture recognition through CNN algorithm, facilitating intuitive and natural interaction with computers. Enhanced user experience and accessibility, particularly beneficial for physically challenged individuals.
