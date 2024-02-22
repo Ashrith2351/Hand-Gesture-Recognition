@@ -1,0 +1,120 @@
+import cv2
+import time
+import os
+import pyautogui as p
+
+"""
+Hand Tracing Module
+By: Murtaza Hassan
+Youtube: http://www.youtube.com/c/MurtazasWorkshopRoboticsandAI
+Website: https://www.murtazahassan.com/
+"""
+
+import cv2
+import mediapipe as mp
+import time
+
+class handDetector():
+    def __init__(self, mode=False, maxHands=2, detectionCon=0.5, trackCon=0.5):
+        self.mode = mode
+        self.maxHands = maxHands
+        self.detectionCon = detectionCon
+        self.trackCon = trackCon
+
+        self.mpHands = mp.solutions.hands
+        self.hands = self.mpHands.Hands(self.mode, self.maxHands,
+                                        self.detectionCon, self.trackCon)
+        self.mpDraw = mp.solutions.drawing_utils
+
+    def findHands(self, img, draw=True):
+        imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        self.results = self.hands.process(imgRGB)
+        # print(results.multi_hand_landmarks)
+
+        if self.results.multi_hand_landmarks:
+            for handLms in self.results.multi_hand_landmarks:
+                if draw:
+                    self.mpDraw.draw_landmarks(img, handLms,
+                                               self.mpHands.HAND_CONNECTIONS)
+        return img
+
+    def findPosition(self, img, handNo=0, draw=True):
+
+        lmList = []
+        if self.results.multi_hand_landmarks:
+            myHand = self.results.multi_hand_landmarks[handNo]
+            for id, lm in enumerate(myHand.landmark):
+                # print(id, lm)
+                h, w, c = img.shape
+                cx, cy = int(lm.x * w), int(lm.y * h)
+                # print(id, cx, cy)
+                lmList.append([id, cx, cy])
+                if draw:
+                    cv2.circle(img, (cx, cy), 15, (255, 0, 255), cv2.FILLED)
+
+        return lmList
+
+
+wCam, hCam = 640, 480
+
+cap = cv2.VideoCapture(0)
+cap.set(3, wCam)
+cap.set(4, hCam)
+
+pTime = 0
+
+detector =handDetector(detectionCon=0.75)
+
+tipIds = [4, 8, 12, 16, 20]
+
+while True:
+    success, img = cap.read()
+    img = detector.findHands(img)
+    lmList = detector.findPosition(img, draw=False)
+    print(lmList)
+
+    if len(lmList) != 0:
+        fingers = []
+
+        # Thumb
+        if lmList[tipIds[0]][1] > lmList[tipIds[0] - 1][1]:
+            fingers.append(1)
+        else:
+            fingers.append(0)
+
+        # 4 Fingers
+        for id in range(1, 5):
+            if lmList[tipIds[id]][2] < lmList[tipIds[id] - 2][2]:
+                fingers.append(1)
+            else:
+                fingers.append(0)
+
+        # print(fingers)
+        totalFingers = fingers.count(1)
+        #print("Result:",totalFingers)
+
+        result=""
+        if totalFingers==1:
+            p.press("space")
+            result = "forward"
+        elif totalFingers==2 :
+            p.press("left")
+            result="backward"
+        elif totalFingers==3:
+            p.press("right")
+            result = "volume up"
+        elif totalFingers==4:
+            p.press("up")
+            result = "volume down"
+        elif totalFingers==5:
+            p.press("down")
+            result = "volume down"
+
+        cv2.putText(img, str(result), (45, 375), cv2.FONT_HERSHEY_SIMPLEX,1, (255, 0, 0),3)
+
+    cTime = time.time()
+    fps = 1 / (cTime - pTime)
+    pTime = cTime
+
+    cv2.imshow("Image", img)
+    cv2.waitKey(1000)
